@@ -4,22 +4,15 @@
    [squee.request :as req]
    [squee.url :as url]))
 
-(defrecord AppClient [host-uri content-type])
+(defrecord AppClient [host-uri content-type guardian passport])
 
 (defn app-client
   [config]
   (map->AppClient config))
 
-(defn- get-attached-jwt-encoder
-  [component]
-  (->> (vals component)
-       (filter (partial satisfies? g.jwt/JwtEncoder))
-       (first)))
-
 (defn request-reset-token
-  [{:keys [host-uri] :as app-client} username]
-  (let [token  (g.jwt/encode (get-attached-jwt-encoder app-client)
-                             {:username username})
+  [{:keys [host-uri guardian] :as app-client} username]
+  (let [token  (g.jwt/encode guardian {:username username})
         url    (url/reset-token host-uri username)
         option (-> app-client
                    (select-keys [:content-type])
@@ -27,5 +20,5 @@
     (req/post url option)))
 
 (defn read-auth-token
-  [app-client token]
-  (g.jwt/decode (get-attached-jwt-encoder app-client) token))
+  [{:keys [passport]} token]
+  (g.jwt/decode passport token))
